@@ -1,0 +1,207 @@
+# Environment variables
+.env
+.env.local
+.env.production
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+.coverage
+.pytest_cache/
+.pytest_cache
+.ipynb_checkpoints
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# Docker
+*.log
+docker-compose.override.yml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build outputs
+dist/
+build/
+*.exe
+*.dll
+*.so
+
+# Test files
+test_*.py
+*_test.py
+.nyc_output/
+coverage/
+*.lcov
+
+# Deployment
+deployment.json
+*.pem
+*.key
+
+# Cache
+.cache/
+tmp/
+temp/
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# Docs
+docs/_build/
+docs/.vitepress/dist/
+docs/.vitepress/cache/
+
+# Local env files
+.env*.local
+
+# Vercel
+.vercel/
+
+# Next.js
+.next/
+out/
+
+# Nuxt.js
+.nuxt/
+.nuxt2/
+.nuxt3/
+
+# Vue CLI
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Vite
+node_modules/
+dist/
+dist-ssr/
+*.local
+.cache/
+.vite/
+
+# SvelteKit
+node_modules/
+.build/
+.svelte-kit/
+.env.*
+
+# Vuepress
+node_modules/
+src/.vuepress/dist/
+src/.temp/
+src/.cache/
+
+# Gatsby
+node_modules/
+public/
+.cache/
+.graphqlrc*
+.gatsby-context*
+.nyc_output/
+coverage/
+*.lcov
+.cypress/
+.nyc_output/
+
+# Expo
+node_modules/
+npm-debug.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+web-build/
+web-report/
+web-report-tmp/
+web/.env*
+
+# React Native
+node_modules/
+/ios/build
+/ios/Pods
+/ios/.generated/
+/android/app/build
+/android/gradle
+/android/gradlew
+/android/gradlew.bat
+/android/local.properties
+/ios/GoogleService-Info.plist
+/android/app/google-services.json
+
+# Flutter
+**/Flutter/ephemeral/
+**/Pods/
+**/Flutter/App.framework/
+**/Flutter/Flutter.framework/
+**/Flutter/Flutter.podspec
+**/Flutter/Generated.xcconfig
+**/Flutter/app.flx
+**/Flutter/app.zip
+**/Flutter/flutter_assets/
+**/Flutter/flutter_export_environment.sh
+**/Flutter/service_identity_key_pair.x509
+**/Flutter/service_identity_key_pair.pk8
+**/Flutter/engine/
+**/Flutter/bin/cache/
+**/Flutter/bin/internal/
+**/Flutter/bin/mingit/
+**/Flutter/bin/cache/artifacts/engine/android-arm/flutter.jar
+**/Flutter/bin/cache/artifacts/engine/android-arm64/flutter.jar
+**/Flutter/bin/cache/artifacts/engine/android-x64/flutter.jar
+**/Flutter/bin/cache/artifacts/engine/ios/Flutter.framework/
+**/Flutter/bin/cache/artifacts/engine/ios/Flutter.podspec
+**/Flutter/bin/cache/pkg/
+**/Flutter/bin/cache/downloads/
+**/Flutter/bin/cache/dart-sdk/
+**/Flutter/bin/cache/flutter_tools.stamp
+**/Flutter/bin/cache/flutter_tools.snapshot
+**/Flutter/bin/cache/flutter_web_sdk/
+**/Flutter/bin/cache/flutter_tester/
+**/Flutter/bin/cache/artifacts/material_fonts/
+**/Flutter/bin/cache/artifacts/engine/common/icudtl.dat
+**/Flutter/bin/cache/artifacts/engine/android-arm-release/flutter.jar
+**/Flutter/bin/cache/artifacts/engine/android-arm64-release/flutter.jar
+**/Flutter/bin/cache/artifacts/engine/android-x64-release/flutter.jar
+**/Flutter/bin/cache/artifacts/engine/ios-release/Flutter.framework/
+**/Flutter/bin/cache/artifacts/engine/ios-release/Flutter.podspec
+
+# Temporary files
+*.tmp
+*.temp
+*~

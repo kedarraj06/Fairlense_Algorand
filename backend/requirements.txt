@@ -1,0 +1,12 @@
+# backend/requirements.txt
+# Python dependencies for FairLens backend
+
+Flask==2.3.3
+Flask-CORS==4.0.0
+requests==2.31.0
+algosdk==2.6.0
+pyteal==0.20.0
+PyNaCl==1.5.0
+ipfshttpclient==0.8.0a2
+python-dotenv==1.0.0
+gunicorn==21.2.0
