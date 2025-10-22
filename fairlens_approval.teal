@@ -1,0 +1,288 @@
+#pragma version 6
+txn ApplicationID
+int 0
+==
+bnz main_l24
+txn OnCompletion
+int DeleteApplication
+==
+bnz main_l23
+txn OnCompletion
+int UpdateApplication
+==
+bnz main_l22
+txn OnCompletion
+int CloseOut
+==
+bnz main_l21
+txn OnCompletion
+int OptIn
+==
+bnz main_l20
+txna ApplicationArgs 0
+byte "add_milestone"
+==
+bnz main_l17
+txna ApplicationArgs 0
+byte "submit_proof"
+==
+bnz main_l16
+txna ApplicationArgs 0
+byte "verify_release"
+==
+bnz main_l15
+txna ApplicationArgs 0
+byte "change_verifier"
+==
+bnz main_l14
+txna ApplicationArgs 0
+byte "change_contractor"
+==
+bnz main_l13
+txna ApplicationArgs 0
+byte "fund_escrow"
+==
+bnz main_l12
+err
+main_l12:
+txn Sender
+byte "owner"
+app_global_get
+==
+assert
+txn NumAppArgs
+int 1
+==
+assert
+int 1
+return
+main_l13:
+txn Sender
+byte "owner"
+app_global_get
+==
+assert
+txn NumAppArgs
+int 2
+==
+assert
+byte "contractor"
+txna ApplicationArgs 1
+app_global_put
+int 1
+return
+main_l14:
+txn Sender
+byte "owner"
+app_global_get
+==
+assert
+txn NumAppArgs
+int 2
+==
+assert
+byte "verifier_pk"
+txna ApplicationArgs 1
+app_global_put
+int 1
+return
+main_l15:
+txn NumAppArgs
+int 4
+==
+assert
+txna ApplicationArgs 1
+btoi
+byte "cur_ms"
+app_global_get
+==
+assert
+byte "temp_amount"
+byte "m"
+txna ApplicationArgs 1
+btoi
+itob
+concat
+byte "_amt"
+concat
+app_global_get
+app_global_put
+byte "temp_proof"
+byte "proof_"
+txna ApplicationArgs 1
+btoi
+itob
+concat
+app_global_get
+app_global_put
+byte "temp_proof"
+app_global_get
+byte ""
+!=
+assert
+txna ApplicationArgs 2
+txna ApplicationArgs 3
+byte "verifier_pk"
+app_global_get
+ed25519verify
+assert
+itxn_begin
+int pay
+itxn_field TypeEnum
+byte "contractor"
+app_global_get
+itxn_field Receiver
+byte "temp_amount"
+app_global_get
+itxn_field Amount
+itxn_submit
+byte "cur_ms"
+byte "cur_ms"
+app_global_get
+int 1
++
+app_global_put
+byte "escrow"
+byte "escrow"
+app_global_get
+byte "temp_amount"
+app_global_get
+-
+app_global_put
+byte "temp_amount"
+app_global_del
+byte "temp_proof"
+app_global_del
+int 1
+return
+main_l16:
+txn Sender
+byte "contractor"
+app_global_get
+==
+assert
+txn NumAppArgs
+int 3
+==
+assert
+txna ApplicationArgs 1
+btoi
+byte "cur_ms"
+app_global_get
+==
+assert
+byte "proof_"
+txna ApplicationArgs 1
+btoi
+itob
+concat
+txna ApplicationArgs 2
+app_global_put
+int 1
+return
+main_l17:
+txn Sender
+byte "owner"
+app_global_get
+==
+assert
+txn NumAppArgs
+int 5
+==
+assert
+byte "m"
+txna ApplicationArgs 1
+btoi
+itob
+concat
+byte "_amt"
+concat
+txna ApplicationArgs 2
+btoi
+app_global_put
+byte "m"
+txna ApplicationArgs 1
+btoi
+itob
+concat
+byte "_due"
+concat
+txna ApplicationArgs 3
+btoi
+app_global_put
+byte "m"
+txna ApplicationArgs 1
+btoi
+itob
+concat
+byte "_hash"
+concat
+txna ApplicationArgs 4
+app_global_put
+txna ApplicationArgs 1
+btoi
+byte "total_ms"
+app_global_get
+>=
+bnz main_l19
+main_l18:
+byte "escrow"
+byte "escrow"
+app_global_get
+txna ApplicationArgs 2
+btoi
++
+app_global_put
+int 1
+return
+main_l19:
+byte "total_ms"
+txna ApplicationArgs 1
+btoi
+int 1
++
+app_global_put
+b main_l18
+main_l20:
+int 0
+return
+main_l21:
+int 0
+return
+main_l22:
+txn Sender
+byte "owner"
+app_global_get
+==
+return
+main_l23:
+txn Sender
+byte "owner"
+app_global_get
+==
+return
+main_l24:
+txn NumAppArgs
+int 3
+==
+assert
+byte "owner"
+txna ApplicationArgs 0
+app_global_put
+byte "contractor"
+txna ApplicationArgs 1
+app_global_put
+byte "verifier_pk"
+txna ApplicationArgs 2
+app_global_put
+byte "total_ms"
+int 0
+app_global_put
+byte "cur_ms"
+int 0
+app_global_put
+byte "escrow"
+int 0
+app_global_put
+int 1
+return
