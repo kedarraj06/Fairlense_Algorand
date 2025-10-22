@@ -25,11 +25,11 @@ FairLens is a revolutionary blockchain-powered platform that brings transparency
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │   Frontend      │    │   Backend       │    │   Smart         │
 │   (React)       │◄──►│   (Node.js)     │◄──►│   Contract      │
-│                 │    │                 │    │   (PyTeal)       │
+│                 │    │                 │    │   (PyTeal)      │
 │ • Pera Wallet   │    │ • Attestation   │    │                 │
 │ • Dashboard     │    │   API           │    │ • Milestone     │
 │ • Management    │    │ • Indexer       │    │   Management    │
-│   Interface     │    │   Integration   │    │ • Payment      │
+│   Interface     │    │   Integration   │    │ • Payment       │
 └─────────────────┘    └─────────────────┘    │   Automation    │
                                                └─────────────────┘
                                                         │
@@ -54,7 +54,7 @@ FairLens is a revolutionary blockchain-powered platform that brings transparency
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-org/fairlens.git
+git clone https://github.com/Kaustubh2512/fairlens.git
 cd fairlens
 ```
 
@@ -82,7 +82,7 @@ npm install
 cd ..
 
 # Python dependencies (for smart contracts)
-pip install pyteal==0.20.0 pytest
+pip install -r backend/requirements.txt
 ```
 
 ### 4. Start the Application
@@ -90,7 +90,7 @@ pip install pyteal==0.20.0 pytest
 #### Start Backend Server
 ```bash
 cd backend
-node server-simple.js
+node server.js
 ```
 *Server runs on http://localhost:5000*
 
@@ -135,10 +135,10 @@ Follow the prompts to enter:
 ### Backend (.env)
 ```bash
 # Algorand Configuration
-ALGOD_TOKEN=your_algod_token_here
-ALGOD_ADDRESS=https://testnet-algorand.api.purestake.io/ps2
-INDEXER_TOKEN=your_indexer_token_here
-INDEXER_ADDRESS=https://testnet-algorand.api.purestake.io/idx2
+ALGOD_TOKEN=
+ALGOD_ADDRESS=https://testnet-api.4160.nodely.dev
+INDEXER_TOKEN=
+INDEXER_ADDRESS=https://testnet-idx.4160.nodely.dev
 
 # Security
 JWT_SECRET=your_jwt_secret_here
@@ -151,10 +151,10 @@ NODE_ENV=development
 
 ### Frontend (.env)
 ```bash
-REACT_APP_ALGOD_TOKEN=your_algod_token_here
-REACT_APP_ALGOD_ADDRESS=https://testnet-algorand.api.purestake.io/ps2
-REACT_APP_INDEXER_TOKEN=your_indexer_token_here
-REACT_APP_INDEXER_ADDRESS=https://testnet-algorand.api.purestake.io/idx2
+REACT_APP_ALGOD_TOKEN=
+REACT_APP_ALGOD_ADDRESS=https://testnet-api.4160.nodely.dev
+REACT_APP_INDEXER_TOKEN=
+REACT_APP_INDEXER_ADDRESS=https://testnet-idx.4160.nodely.dev
 REACT_APP_BACKEND_URL=http://localhost:5000
 ```
 
@@ -233,16 +233,14 @@ python scripts/deploy_testnet.py
 
 ### Run All Tests
 ```bash
-# Backend tests
-cd backend
-npm test
+# Run all tests
+python tests/run_all_tests.py
 
-# Frontend tests
-cd frontend
-npm test
+# Backend API tests
+python tests/test_backend_api.py
 
-# Smart contract tests
-python -m pytest tests/test_contract_unit.py -v
+# Smart contract unit tests
+python tests/test_contract_unit.py
 ```
 
 ### Test API Endpoints
@@ -250,7 +248,7 @@ python -m pytest tests/test_contract_unit.py -v
 # Health check
 curl http://localhost:5000/health
 
-# Create attestation
+# Create attestation (example)
 curl -X POST http://localhost:5000/api/attest \
   -H "Content-Type: application/json" \
   -d '{"app_id": 123, "milestone_index": 0, "status": "PASS", "milestone_hash": "test123"}'
@@ -270,10 +268,10 @@ docker-compose ps
 ### Production
 ```bash
 # Build and deploy
-./deploy.sh deploy
+./deploy.sh
 
 # Health check
-./deploy.sh health
+curl http://localhost:5000/health
 ```
 
 ## 📊 Monitoring
@@ -375,8 +373,8 @@ fairlens/
 
 - [User Guide](docs/USER_GUIDE.md) - Complete user manual
 - [Developer Guide](docs/DEVELOPER_GUIDE.md) - Technical documentation
-- [API Documentation](docs/API.md) - Backend API reference
-- [Smart Contract Guide](docs/SMART_CONTRACTS.md) - Contract documentation
+- [API Documentation](backend/README.md) - Backend API reference
+- [Smart Contract Guide](contracts/README.md) - Contract documentation
 
 ## 🆘 Troubleshooting
 
@@ -404,7 +402,6 @@ fairlens/
 
 - **Documentation**: Check the docs folder
 - **Issues**: Create a GitHub issue
-- **Discord**: Join our community server
 - **Email**: support@fairlens.org
 
 ## 📄 License
@@ -419,13 +416,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Contact
 
-- **Website**: https://fairlens.org
-- **Email**: info@fairlens.org
-- **Twitter**: @FairLensApp
-- **Discord**: [Join our community](https://discord.gg/fairlens)
+- **Repository**: https://github.com/Kaustubh2512/fairlens
+- **Email**: ksandure@gmail.com
 
 ---
 
 **Built with ❤️ for transparent government contracting**
 
-*Last updated: December 2024*
+*Last updated: October 2025*
