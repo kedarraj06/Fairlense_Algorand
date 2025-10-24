@@ -1,0 +1,16 @@
+{
+  "name": "fairlens-system-test",
+  "version": "1.0.0",
+  "description": "System test for FairLens platform",
+  "main": "test-system.js",
+  "scripts": {
+    "test": "node test-system.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.2",
+    "mongoose": "^8.19.2",
+    "dotenv": "^16.3.1"
+  },
+  "author": "FairLens Team",
+  "license": "MIT"
+}

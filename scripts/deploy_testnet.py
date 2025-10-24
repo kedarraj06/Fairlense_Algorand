@@ -131,7 +131,11 @@ def deploy_contract(private_key, owner_address, contractor_address, verifier_pub
             clear_program=clear_teal,
             global_schema=StateSchema(num_uints=10, num_byte_slices=20),
             local_schema=StateSchema(num_uints=0, num_byte_slices=0),
-            app_args=[]  # No arguments for testing
+            app_args=[
+                owner_address.encode('utf-8'),
+                contractor_address.encode('utf-8'),
+                verifier_pubkey
+            ]
         )
         
         # Sign and send transaction

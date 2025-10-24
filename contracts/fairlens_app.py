@@ -17,18 +17,14 @@ CUR_MS = Bytes("cur_ms")             # current milestone index (uint64)
 ESCROW_BALANCE = Bytes("escrow")     # total escrow balance (uint64)
 
 # Milestone storage keys: "m{index}_amt", "m{index}_hash", "m{index}_due"
-def ms_amt_key(i: Int) -> Expr:
+def ms_amt_key(i: Expr) -> Expr:
     return Concat(Bytes("m"), Itob(i), Bytes("_amt"))
 
-def ms_hash_key(i: Int) -> Expr:
+def ms_hash_key(i: Expr) -> Expr:
     return Concat(Bytes("m"), Itob(i), Bytes("_hash"))
 
-def ms_due_key(i: Int) -> Expr:
+def ms_due_key(i: Expr) -> Expr:
     return Concat(Bytes("m"), Itob(i), Bytes("_due"))
-
-# Helper to safely get application arguments
-def get_arg(i: Int) -> Expr:
-    return Txn.application_args[i]
 
 # ---------------------------
 # Approval program
@@ -54,17 +50,18 @@ def approval_program():
         Assert(Txn.sender() == App.globalGet(OWNER_KEY)),
         Assert(Txn.application_args.length() == Int(5)),
         
-        # For simplicity, we'll use direct expressions
-        # Store milestone data using direct expressions
-        App.globalPut(Concat(Bytes("m"), Itob(Btoi(get_arg(Int(1)))), Bytes("_amt")), Btoi(get_arg(Int(2)))),
-        App.globalPut(Concat(Bytes("m"), Itob(Btoi(get_arg(Int(1)))), Bytes("_due")), Btoi(get_arg(Int(3)))),
-        App.globalPut(Concat(Bytes("m"), Itob(Btoi(get_arg(Int(1)))), Bytes("_hash")), get_arg(Int(4))),
+        # Extract milestone data
+        App.globalPut(ms_amt_key(Btoi(Txn.application_args[1])), Btoi(Txn.application_args[2])),
+        App.globalPut(ms_due_key(Btoi(Txn.application_args[1])), Btoi(Txn.application_args[3])),
+        App.globalPut(ms_hash_key(Btoi(Txn.application_args[1])), Txn.application_args[4]),
         
         # Update total milestones if needed
-        If(Btoi(get_arg(Int(1))) >= App.globalGet(TOTAL_MS)).Then(App.globalPut(TOTAL_MS, Btoi(get_arg(Int(1))) + Int(1))),
+        If(Btoi(Txn.application_args[1]) >= App.globalGet(TOTAL_MS)).Then(
+            App.globalPut(TOTAL_MS, Btoi(Txn.application_args[1]) + Int(1))
+        ),
         
         # Update escrow balance
-        App.globalPut(ESCROW_BALANCE, App.globalGet(ESCROW_BALANCE) + Btoi(get_arg(Int(2)))),
+        App.globalPut(ESCROW_BALANCE, App.globalGet(ESCROW_BALANCE) + Btoi(Txn.application_args[2])),
         
         Approve()
     ])
@@ -76,9 +73,9 @@ def approval_program():
         Assert(Txn.application_args.length() == Int(3)),
         
         # Must submit for the current milestone
-        Assert(Btoi(get_arg(Int(1))) == App.globalGet(CUR_MS)),
+        Assert(Btoi(Txn.application_args[1]) == App.globalGet(CUR_MS)),
         
-        App.globalPut(Concat(Bytes("proof_"), Itob(Btoi(get_arg(Int(1))))), get_arg(Int(2))),
+        App.globalPut(Concat(Bytes("proof_"), Itob(Btoi(Txn.application_args[1]))), Txn.application_args[2]),
         
         Approve()
     ])
@@ -88,17 +85,17 @@ def approval_program():
     verify_release = Seq([
         Assert(Txn.application_args.length() == Int(4)),
         
-        Assert(Btoi(get_arg(Int(1))) == App.globalGet(CUR_MS)),
+        Assert(Btoi(Txn.application_args[1]) == App.globalGet(CUR_MS)),
         
         # Get milestone amount
-        App.globalPut(Bytes("temp_amt"), App.globalGet(Concat(Bytes("m"), Itob(Btoi(get_arg(Int(1)))), Bytes("_amt")))),
+        App.globalPut(Bytes("temp_amt"), App.globalGet(ms_amt_key(Btoi(Txn.application_args[1])))),
         
         # Ensure proof exists
-        App.globalPut(Bytes("proof_value"), App.globalGet(Concat(Bytes("proof_"), Itob(Btoi(get_arg(Int(1))))))),
+        App.globalPut(Bytes("proof_value"), App.globalGet(Concat(Bytes("proof_"), Itob(Btoi(Txn.application_args[1]))))),
         Assert(App.globalGet(Bytes("proof_value")) != Bytes("")),
         
         # Verify Ed25519 signature
-        Assert(Ed25519Verify(get_arg(Int(2)), get_arg(Int(3)), App.globalGet(VERIFIER_KEY))),
+        Assert(Ed25519Verify(Txn.application_args[2], Txn.application_args[3], App.globalGet(VERIFIER_KEY))),
         
         # Create inner payment transaction
         InnerTxnBuilder.Begin(),
@@ -125,7 +122,7 @@ def approval_program():
     set_verifier = Seq([
         Assert(Txn.sender() == App.globalGet(OWNER_KEY)),
         Assert(Txn.application_args.length() == Int(2)),
-        App.globalPut(VERIFIER_KEY, get_arg(Int(1))),
+        App.globalPut(VERIFIER_KEY, Txn.application_args[1]),
         Approve()
     ])
 
@@ -134,7 +131,7 @@ def approval_program():
     set_contractor = Seq([
         Assert(Txn.sender() == App.globalGet(OWNER_KEY)),
         Assert(Txn.application_args.length() == Int(2)),
-        App.globalPut(CONTRACTOR_KEY, get_arg(Int(1))),
+        App.globalPut(CONTRACTOR_KEY, Txn.application_args[1]),
         Approve()
     ])
 
@@ -143,15 +140,12 @@ def approval_program():
     fund_escrow = Seq([
         Assert(Txn.sender() == App.globalGet(OWNER_KEY)),
         Assert(Txn.application_args.length() == Int(1)),
-        
-        # This method just approves - actual funding happens via payment to app address
         Approve()
     ])
 
     # --- Get contract state (read-only)
     # Args: ["get_state"]
     get_state = Seq([
-        # Return all global state (for debugging/testing)
         Approve()
     ])
 
