@@ -6,7 +6,7 @@ import { Button } from '../ui/button';
 import { Checkbox } from '../ui/checkbox';
 import { Eye, EyeOff, Shield, Lock, Key, CheckCircle, AlertCircle } from 'lucide-react';
 import { Progress } from '../ui/progress';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 interface GovernmentLoginProps {
   isOpen: boolean;
@@ -186,7 +186,7 @@ export default function GovernmentLogin({ isOpen, onClose, onSuccess }: Governme
                   className="pl-10"
                 />
               </div>
-              <p className="text-xs text-gray-500 mt-1">Use demo: SecureKey@2025</p>
+              <p className="text-xs text-gray-500 mt-1">Use demo: SecureKey</p>
             </div>
 
             {/* Passkey Strength Indicator */}

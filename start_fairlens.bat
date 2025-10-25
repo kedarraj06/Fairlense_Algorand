@@ -17,16 +17,16 @@ echo ✅ Node.js is installed
 REM Install backend dependencies
 echo 📦 Installing backend dependencies...
 cd backend
-call npm install mongoose --legacy-peer-deps
+call npm install --legacy-peer-deps
 if %errorlevel% neq 0 (
     echo ❌ Failed to install backend dependencies
     pause
     exit /b 1
 )
 
-REM Start backend server (simple version without MongoDB for now)
+REM Start backend server
 echo 🔧 Starting backend server...
-start "FairLens Backend" cmd /k "node server-simple.js"
+start "FairLens Backend" cmd /k "node server.js"
 
 REM Wait a moment for backend to start
 timeout /t 3 /nobreak >nul
@@ -45,7 +45,7 @@ if %errorlevel% neq 0 (
 
 REM Start frontend server
 echo 🎨 Starting frontend server...
-start "FairLens Frontend" cmd /k "npm start"
+start "FairLens Frontend" cmd /k "npm run dev"
 
 REM Wait a moment for frontend to start
 timeout /t 5 /nobreak >nul

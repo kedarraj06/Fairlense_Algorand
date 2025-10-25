@@ -7,7 +7,7 @@ import { Checkbox } from '../ui/checkbox';
 import { Eye, EyeOff, Users, Mail, Phone, MapPin, CheckCircle } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Progress } from '../ui/progress';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 interface CitizenAccessProps {
   isOpen: boolean;

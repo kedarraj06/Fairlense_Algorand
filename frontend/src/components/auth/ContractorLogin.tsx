@@ -7,7 +7,7 @@ import { Checkbox } from '../ui/checkbox';
 import { Eye, EyeOff, Briefcase, Lock, Key, CheckCircle } from 'lucide-react';
 import { Progress } from '../ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 interface ContractorLoginProps {
   isOpen: boolean;
@@ -197,7 +197,7 @@ export default function ContractorLogin({ isOpen, onClose, onSuccess }: Contract
                   className="pl-10"
                 />
               </div>
-              <p className="text-xs text-gray-500 mt-1">Use demo: CompanyKey@123</p>
+              <p className="text-xs text-gray-500 mt-1">Use demo: CompanyKey</p>
             </div>
 
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs">

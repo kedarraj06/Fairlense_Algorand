@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Badge } from './ui/badge';
 import { Progress } from './ui/progress';
 import { Input } from './ui/input';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import GovernmentOverview from './government/GovernmentOverview';
 import TenderManagement from './government/TenderManagement';
 import ProjectMonitoring from './government/ProjectMonitoring';

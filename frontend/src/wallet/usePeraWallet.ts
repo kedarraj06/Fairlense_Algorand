@@ -1,169 +1,522 @@
-// frontend/src/wallet/usePeraWallet.ts
-// Custom hook for Pera Wallet integration
+// Pera Wallet integration hook for FairLens frontend
+// Handles Pera Algorand wallet connection and transactions
 
-import { useState, useEffect } from 'react';
-import peraWalletService from '../services/peraWallet';
+import { useState } from 'react';
+import { PeraWalletConnect } from '@perawallet/connect';
+import algosdk from 'algosdk';
 
-export const usePeraWallet = () => {
-  const [accountAddress, setAccountAddress] = useState(null);
+// Initialize Pera wallet
+let peraWallet: PeraWalletConnect | null = null;
+
+const usePeraWallet = () => {
+  const [accountAddress, setAccountAddress] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [balance, setBalance] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [algodClient, setAlgodClient] = useState<algosdk.Algodv2 | null>(null);
+  const [indexerClient, setIndexerClient] = useState<algosdk.Indexer | null>(null);
 
-  // Check connection status on mount
-  useEffect(() => {
-    const checkConnection = async () => {
-      const status = peraWalletService.getConnectionStatus();
-      if (status.isConnected && status.address) {
-        setAccountAddress(status.address);
-        setIsConnected(true);
-      }
-    };
+  // Initialize Algorand clients
+  const initializeAlgorandClients = () => {
+    const newAlgodClient = new algosdk.Algodv2(
+      import.meta.env.VITE_ALGOD_TOKEN || '',
+      import.meta.env.VITE_ALGOD_ADDRESS || 'https://testnet-api.4160.nodely.dev',
+      import.meta.env.VITE_ALGOD_PORT || ''
+    );
 
-    checkConnection();
-  }, []);
+    const newIndexerClient = new algosdk.Indexer(
+      import.meta.env.VITE_INDEXER_TOKEN || '',
+      import.meta.env.VITE_INDEXER_ADDRESS || 'https://testnet-idx.4160.nodely.dev',
+      import.meta.env.VITE_INDEXER_PORT || ''
+    );
 
-  const connectWallet = async () => {
-    setIsLoading(true);
+    setAlgodClient(newAlgodClient);
+    setIndexerClient(newIndexerClient);
+    
+    return { algodClient: newAlgodClient, indexerClient: newIndexerClient };
+  };
+
+  // Connect to Pera wallet
+  const connect = async () => {
     try {
-      const result = await peraWalletService.connect();
-      
-      if (result.success) {
-        setAccountAddress(result.address || null);
-        setIsConnected(true);
-        return result;
-      } else {
-        throw new Error(result.error || 'Failed to connect wallet');
+      if (!peraWallet) {
+        peraWallet = new PeraWalletConnect({
+          chainId: parseInt(import.meta.env.VITE_PERAWALLET_CHAIN_ID || '416002') as any, // Algorand TestNet
+        });
       }
-    } catch (error) {
-      console.error('Wallet connection error:', error);
-      throw error;
-    } finally {
-      setIsLoading(false);
+
+      // Connect to wallet
+      const accounts = await peraWallet.connect();
+      
+      setAccountAddress(accounts[0]);
+      setIsConnected(true);
+
+      // Initialize Algorand clients
+      initializeAlgorandClients();
+
+      return {
+        success: true,
+        accounts: accounts,
+        address: accounts[0]
+      };
+    } catch (error: any) {
+      console.error('Pera wallet connection error:', error);
+      return {
+        success: false,
+        error: error.message
+      };
     }
   };
 
-  const disconnectWallet = async () => {
+  // Disconnect from Pera wallet
+  const disconnect = async () => {
     try {
-      await peraWalletService.disconnect();
+      if (peraWallet) {
+        await peraWallet.disconnect();
+      }
+      
       setAccountAddress(null);
       setIsConnected(false);
-      setBalance(null);
-    } catch (error) {
-      console.error('Wallet disconnection error:', error);
-      throw error;
+      setAlgodClient(null);
+      setIndexerClient(null);
+      peraWallet = null;
+
+      return { success: true };
+    } catch (error: any) {
+      console.error('Pera wallet disconnect error:', error);
+      return {
+        success: false,
+        error: error.message
+      };
     }
   };
 
-  const getBalance = async (address) => {
+  // Get account balance
+  const getBalance = async (address: string) => {
     try {
-      const result = await peraWalletService.getBalance(address);
-      if (result.success) {
-        setBalance(result.balance);
+      if (!algodClient) {
+        initializeAlgorandClients();
       }
-      return result;
-    } catch (error) {
+
+      const accountInfo = await algodClient!.accountInformation(address).do();
+      
+      return {
+        success: true,
+        balance: accountInfo.amount,
+        assets: accountInfo.assets || []
+      };
+    } catch (error: any) {
       console.error('Error getting balance:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  };
+
+  // Sign transaction
+  const signTransaction = async (transaction: algosdk.Transaction) => {
+    try {
+      if (!isConnected || !peraWallet) {
+        throw new Error('Wallet not connected');
+      }
+
+      const signedTxns = await peraWallet.signTransaction([[{txn: transaction, signers: [accountAddress!]}]]);
+      return {
+        success: true,
+        signedTransaction: signedTxns[0][0]
+      };
+    } catch (error: any) {
+      console.error('Transaction signing error:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  };
+
+  // Sign multiple transactions
+  const signTransactions = async (transactions: algosdk.Transaction[]) => {
+    try {
+      if (!isConnected || !peraWallet) {
+        throw new Error('Wallet not connected');
+      }
+
+      const signerTransactions = transactions.map(txn => ({
+        txn: txn,
+        signers: [accountAddress!]
+      }));
+      
+      const signedTxs = await peraWallet.signTransaction([signerTransactions]);
+      return {
+        success: true,
+        signedTransactions: signedTxs[0]
+      };
+    } catch (error: any) {
+      console.error('Multiple transaction signing error:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  };
+
+  // Create application call transaction
+  const createAppCall = async (
+    appId: number, 
+    sender: string, 
+    appArgs: Uint8Array[], 
+    suggestedParams: algosdk.SuggestedParams
+  ) => {
+    try {
+      const txn = algosdk.makeApplicationNoOpTxnFromObject({
+        sender: sender,
+        appIndex: appId,
+        appArgs: appArgs,
+        suggestedParams: suggestedParams
+      });
+      return txn;
+    } catch (error: any) {
+      console.error('Error creating app call:', error);
       throw error;
     }
   };
 
-  const signTransaction = async (transaction) => {
+  // Create payment transaction
+  const createPayment = async (
+    sender: string, 
+    receiver: string, 
+    amount: number, 
+    suggestedParams: algosdk.SuggestedParams
+  ) => {
     try {
-      const result = await peraWalletService.signTransaction(transaction);
-      return result;
-    } catch (error) {
-      console.error('Error signing transaction:', error);
+      const txn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
+        sender: sender,
+        receiver: receiver,
+        amount: BigInt(amount),
+        suggestedParams: suggestedParams
+      });
+      return txn;
+    } catch (error: any) {
+      console.error('Error creating payment:', error);
       throw error;
     }
   };
 
-  const signTransactions = async (transactions) => {
+  // Get transaction parameters
+  const getTransactionParams = async () => {
     try {
-      const result = await peraWalletService.signTransactions(transactions);
-      return result;
-    } catch (error) {
-      console.error('Error signing transactions:', error);
+      if (!algodClient) {
+        initializeAlgorandClients();
+      }
+      return await algodClient!.getTransactionParams().do();
+    } catch (error: any) {
+      console.error('Error getting transaction params:', error);
       throw error;
     }
   };
 
-  const deployContract = async (ownerAddress, contractorAddress, verifierPubkey, projectTitle) => {
+  // Send transaction
+  const sendTransaction = async (signedTxn: Uint8Array) => {
     try {
-      const result = await peraWalletService.deployContract(ownerAddress, contractorAddress, verifierPubkey, projectTitle);
-      return result;
-    } catch (error) {
+      if (!algodClient) {
+        initializeAlgorandClients();
+      }
+      const txId = await algodClient!.sendRawTransaction(signedTxn).do();
+      return txId;
+    } catch (error: any) {
+      console.error('Error sending transaction:', error);
+      throw error;
+    }
+  };
+
+  // Wait for transaction confirmation
+  const waitForConfirmation = async (txId: string) => {
+    try {
+      if (!algodClient) {
+        initializeAlgorandClients();
+      }
+      const confirmedTxn = await algosdk.waitForConfirmation(
+        algodClient!,
+        txId,
+        4
+      );
+      return confirmedTxn;
+    } catch (error: any) {
+      console.error('Error waiting for confirmation:', error);
+      throw error;
+    }
+  };
+
+  // Deploy smart contract
+  const deployContract = async (
+    ownerAddress: string, 
+    contractorAddress: string, 
+    verifierPubkey: string, 
+    projectTitle: string
+  ) => {
+    try {
+      if (!algodClient) {
+        initializeAlgorandClients();
+      }
+
+      const suggestedParams = await getTransactionParams();
+      suggestedParams.flatFee = true;
+      suggestedParams.fee = BigInt(1000);
+
+      // Create application creation transaction
+      const txn = algosdk.makeApplicationCreateTxnFromObject({
+        sender: ownerAddress,
+        suggestedParams: suggestedParams,
+        onComplete: algosdk.OnApplicationComplete.NoOpOC,
+        approvalProgram: new Uint8Array([84, 101, 97, 108, 32, 112, 114, 111, 103, 114, 97, 109, 32, 112, 108, 97, 99, 101, 104, 111, 108, 100, 101, 114]), // "Teal program placeholder" in ASCII
+        clearProgram: new Uint8Array([84, 101, 97, 108, 32, 112, 114, 111, 103, 114, 97, 109, 32, 112, 108, 97, 99, 101, 104, 111, 108, 100, 101, 114]), // "Teal program placeholder" in ASCII
+        numLocalInts: 0,
+        numLocalByteSlices: 0,
+        numGlobalInts: 10,
+        numGlobalByteSlices: 20,
+        appArgs: [
+          new TextEncoder().encode(ownerAddress),
+          new TextEncoder().encode(contractorAddress),
+          new Uint8Array(verifierPubkey.match(/.{1,2}/g)?.map(byte => parseInt(byte, 16)) || []),
+          new TextEncoder().encode(projectTitle)
+        ]
+      });
+
+      return {
+        success: true,
+        transaction: txn,
+        encodedTxn: algosdk.encodeUnsignedTransaction(txn)
+      };
+
+    } catch (error: any) {
       console.error('Error deploying contract:', error);
-      throw error;
+      return {
+        success: false,
+        error: error.message
+      };
     }
   };
 
-  const addMilestone = async (appId, sender, milestoneIndex, amount, dueTimestamp, description) => {
+  // Add milestone to contract
+  const addMilestone = async (
+    appId: number, 
+    sender: string, 
+    milestoneIndex: number, 
+    amount: number, 
+    dueTimestamp: number, 
+    description: string
+  ) => {
     try {
-      const result = await peraWalletService.addMilestone(appId, sender, milestoneIndex, amount, dueTimestamp, description);
-      return result;
-    } catch (error) {
+      const suggestedParams = await getTransactionParams();
+      
+      const appArgs = [
+        new TextEncoder().encode('add_milestone'),
+        algosdk.encodeUint64(milestoneIndex),
+        algosdk.encodeUint64(amount),
+        algosdk.encodeUint64(dueTimestamp),
+        new TextEncoder().encode(description)
+      ];
+
+      const txn = await createAppCall(appId, sender, appArgs, suggestedParams);
+      return {
+        success: true,
+        transaction: txn,
+        encodedTxn: algosdk.encodeUnsignedTransaction(txn)
+      };
+
+    } catch (error: any) {
       console.error('Error adding milestone:', error);
-      throw error;
+      return {
+        success: false,
+        error: error.message
+      };
     }
   };
 
-  const submitMilestoneProof = async (appId, sender, milestoneIndex, proofHash) => {
+  // Submit milestone proof
+  const submitMilestoneProof = async (
+    appId: number, 
+    sender: string, 
+    milestoneIndex: number, 
+    proofHash: string
+  ) => {
     try {
-      const result = await peraWalletService.submitMilestoneProof(appId, sender, milestoneIndex, proofHash);
-      return result;
-    } catch (error) {
+      const suggestedParams = await getTransactionParams();
+      
+      const appArgs = [
+        new TextEncoder().encode('submit_proof'),
+        algosdk.encodeUint64(milestoneIndex),
+        new TextEncoder().encode(proofHash)
+      ];
+
+      const txn = await createAppCall(appId, sender, appArgs, suggestedParams);
+      return {
+        success: true,
+        transaction: txn,
+        encodedTxn: algosdk.encodeUnsignedTransaction(txn)
+      };
+
+    } catch (error: any) {
       console.error('Error submitting proof:', error);
-      throw error;
+      return {
+        success: false,
+        error: error.message
+      };
     }
   };
 
-  const verifyAndReleasePayment = async (appId, sender, milestoneIndex, messageBytes, signatureBytes) => {
+  // Verify and release payment
+  const verifyAndReleasePayment = async (
+    appId: number, 
+    sender: string, 
+    milestoneIndex: number, 
+    messageBytes: Uint8Array, 
+    signatureBytes: Uint8Array
+  ) => {
     try {
-      const result = await peraWalletService.verifyAndReleasePayment(appId, sender, milestoneIndex, messageBytes, signatureBytes);
-      return result;
-    } catch (error) {
-      console.error('Error verifying and releasing payment:', error);
-      throw error;
+      const suggestedParams = await getTransactionParams();
+      
+      // Increase fee to cover inner transaction
+      suggestedParams.fee = BigInt(2000);
+      suggestedParams.flatFee = true;
+      
+      const appArgs = [
+        new TextEncoder().encode('verify_release'),
+        algosdk.encodeUint64(milestoneIndex),
+        new Uint8Array(messageBytes),
+        new Uint8Array(signatureBytes)
+      ];
+
+      const txn = await createAppCall(appId, sender, appArgs, suggestedParams);
+      return {
+        success: true,
+        transaction: txn,
+        encodedTxn: algosdk.encodeUnsignedTransaction(txn)
+      };
+
+    } catch (error: any) {
+      console.error('Error verifying and releasing:', error);
+      return {
+        success: false,
+        error: error.message
+      };
     }
   };
 
-  const fundEscrow = async (appId, sender, amount) => {
+  // Fund escrow account
+  const fundEscrow = async (appId: number, sender: string, amount: number) => {
     try {
-      const result = await peraWalletService.fundEscrow(appId, sender, amount);
-      return result;
-    } catch (error) {
+      const appAddress = algosdk.getApplicationAddress(appId);
+      const suggestedParams = await getTransactionParams();
+      
+      const txn = await createPayment(sender, appAddress.toString(), amount, suggestedParams);
+      return {
+        success: true,
+        transaction: txn,
+        encodedTxn: algosdk.encodeUnsignedTransaction(txn)
+      };
+
+    } catch (error: any) {
       console.error('Error funding escrow:', error);
-      throw error;
+      return {
+        success: false,
+        error: error.message
+      };
     }
   };
 
-  const getApplicationState = async (appId) => {
+  // Get application state
+  const getApplicationState = async (appId: number) => {
     try {
-      const result = await peraWalletService.getApplicationState(appId);
-      return result;
-    } catch (error) {
+      if (!indexerClient) {
+        initializeAlgorandClients();
+      }
+
+      const appInfo = await indexerClient!.lookupApplications(appId).do();
+      
+      if (!appInfo || !appInfo.application) {
+        return {
+          success: false,
+          error: 'Application not found'
+        };
+      }
+
+      const app = appInfo.application;
+      
+      // Parse global state
+      const globalState: Record<string, any> = {};
+      if (app.params && app.params.globalState) {
+        for (const state of app.params.globalState) {
+          // Fix Buffer issues by using TextDecoder
+          const key = new TextDecoder().decode(new Uint8Array(state.key));
+          let value;
+          
+          if (state.value.type === 1) { // bytes
+            value = new TextDecoder().decode(new Uint8Array(state.value.bytes));
+          } else if (state.value.type === 2) { // uint64
+            value = state.value.uint;
+          } else {
+            value = state.value;
+          }
+          
+          globalState[key] = value;
+        }
+      }
+
+      return {
+        success: true,
+        appId: appId,
+        globalState: globalState,
+        creator: (app as any).creator,
+        createdAt: (app as any).createdAtRound,
+        updatedAt: (app as any).updatedAtRound
+      };
+
+    } catch (error: any) {
       console.error('Error getting application state:', error);
-      throw error;
+      return {
+        success: false,
+        error: error.message
+      };
     }
+  };
+
+  // Get connection status
+  const getConnectionStatus = () => {
+    return {
+      isConnected: isConnected,
+      address: accountAddress
+    };
+  };
+
+  // Check if Pera wallet is available
+  const isPeraWalletAvailable = () => {
+    return typeof window !== 'undefined';
   };
 
   return {
+    // State
     accountAddress,
     isConnected,
-    balance,
-    isLoading,
-    connectWallet,
-    disconnectWallet,
+    
+    // Actions
+    connect,
+    disconnect,
     getBalance,
     signTransaction,
     signTransactions,
+    createAppCall,
+    createPayment,
+    getTransactionParams,
+    sendTransaction,
+    waitForConfirmation,
     deployContract,
     addMilestone,
     submitMilestoneProof,
     verifyAndReleasePayment,
     fundEscrow,
-    getApplicationState
+    getApplicationState,
+    getConnectionStatus,
+    isPeraWalletAvailable
   };
 };
 

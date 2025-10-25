@@ -4,7 +4,7 @@ import {
   Menu, X, Users
 } from 'lucide-react';
 import { Button } from './ui/button';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import ContractorOverview from './contractor/ContractorOverview';
 import TenderDiscovery from './contractor/TenderDiscovery';
 import MyProjects from './contractor/MyProjects';

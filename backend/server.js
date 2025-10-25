@@ -10,7 +10,6 @@ const rateLimit = require('express-rate-limit');
 const { body, validationResult } = require('express-validator');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-// const { createClient } = require('@supabase/supabase-js');
 const algosdk = require('algosdk');
 const winston = require('winston');
 const multer = require('multer');
@@ -50,8 +49,6 @@ const logger = winston.createLogger({
     })
   ]
 });
-
-
 
 // Algorand clients are initialized in BlockchainService
 
@@ -667,69 +664,27 @@ app.get('/api/blockchain/contract/:contractAddress/state', async (req, res) => {
   }
 });
 
-// Blockchain Integration Routes
-app.post('/api/blockchain/deploy-contract', authenticateToken, authorizeRole(['government']), async (req, res) => {
-  try {
-    const { tenderId, contractorWallet, verifierWallet } = req.body;
-
-    // Get tender details
-    const { data: tender, error: tenderError } = await supabase
-      .from('tenders')
-      .select('*')
-      .eq('id', tenderId)
-      .single();
-
-    if (tenderError || !tender) {
-      return res.status(404).json({ error: 'Tender not found' });
-    }
-
-    // Deploy smart contract (simplified for demo)
-    const contractAddress = `CONTRACT_${uuidv4()}`;
-    
-    // Update tender with contract address
-    const { error: updateError } = await supabase
-      .from('tenders')
-      .update({ 
-        contract_address: contractAddress,
-        blockchain_deployed: true,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', tenderId);
-
-    if (updateError) {
-      logger.error('Database error:', updateError);
-      return res.status(500).json({ error: 'Failed to update tender' });
-    }
-
-    res.json({
-      message: 'Smart contract deployed successfully',
-      contractAddress,
-      tenderId
-    });
-
-  } catch (error) {
-    logger.error('Error deploying contract:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
 // Analytics Routes
 app.get('/api/analytics/overview', authenticateToken, async (req, res) => {
   try {
-    const { data: tenders } = await supabase
-      .from('tenders')
-      .select('status, budget');
-
-    const { data: projects } = await supabase
-      .from('projects')
-      .select('status, budget');
-
+    // Get analytics data from MongoDB
+    const tendersResult = await mongoService.getTenders();
+    const projectsResult = await mongoService.getProjects();
+    
+    if (!tendersResult.success || !projectsResult.success) {
+      logger.error('Database error:', tendersResult.error || projectsResult.error);
+      return res.status(500).json({ error: 'Failed to fetch analytics data' });
+    }
+    
+    const tenders = tendersResult.tenders || [];
+    const projects = projectsResult.projects || [];
+    
     const analytics = {
-      totalTenders: tenders?.length || 0,
-      totalProjects: projects?.length || 0,
-      totalBudget: tenders?.reduce((sum, t) => sum + (t.budget || 0), 0) || 0,
-      activeProjects: projects?.filter(p => p.status === 'active').length || 0,
-      completedProjects: projects?.filter(p => p.status === 'completed').length || 0
+      totalTenders: tenders.length,
+      totalProjects: projects.length,
+      totalBudget: tenders.reduce((sum, t) => sum + (t.budget || 0), 0),
+      activeProjects: projects.filter(p => p.status === 'active').length,
+      completedProjects: projects.filter(p => p.status === 'completed').length
     };
 
     res.json({ analytics });
@@ -796,7 +751,6 @@ app.use('*', (req, res) => {
 server.listen(PORT, () => {
   logger.info(`FairLens Backend Server running on port ${PORT}`);
   logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  logger.info(`Supabase URL: ${process.env.SUPABASE_URL || 'Not configured'}`);
   logger.info(`Algod Address: ${process.env.ALGOD_ADDRESS || 'testnet'}`);
 });
 

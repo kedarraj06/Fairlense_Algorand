@@ -17,33 +17,29 @@ class PeraWalletService {
   // Initialize Pera wallet connection
   async connect() {
     try {
-      // Check if Pera wallet is available
-      if (typeof window !== 'undefined' && window.PeraWalletConnect) {
-        this.peraWallet = new PeraWalletConnect({
-          chainId: 416002, // Algorand TestNet
-        });
+      // Initialize Pera wallet
+      this.peraWallet = new PeraWalletConnect({
+        chainId: parseInt(import.meta.env.VITE_PERAWALLET_CHAIN_ID) || 416002, // Algorand TestNet
+      });
 
-        // Connect to wallet
-        const accounts = await this.peraWallet.connect();
-        
-        this.accounts = accounts;
-        this.address = accounts[0];
-        this.isConnected = true;
+      // Connect to wallet
+      const accounts = await this.peraWallet.connect();
+      
+      this.accounts = accounts;
+      this.address = accounts[0];
+      this.isConnected = true;
 
-        // Initialize Algorand clients
-        this.initializeAlgorandClients();
+      // Initialize Algorand clients
+      this.initializeAlgorandClients();
 
-        // Set up event listeners
-        this.setupEventListeners();
+      // Set up event listeners
+      this.setupEventListeners();
 
-        return {
-          success: true,
-          accounts: this.accounts,
-          address: this.address
-        };
-      } else {
-        throw new Error('Pera wallet not available. Please install Pera wallet extension.');
-      }
+      return {
+        success: true,
+        accounts: this.accounts,
+        address: this.address
+      };
     } catch (error) {
       console.error('Pera wallet connection error:', error);
       return {
@@ -57,13 +53,13 @@ class PeraWalletService {
   initializeAlgorandClients() {
     this.algodClient = new algosdk.Algodv2(
       import.meta.env.VITE_ALGOD_TOKEN || '',
-      import.meta.env.VITE_ALGOD_ADDRESS || 'https://testnet-algorand.api.purestake.io/ps2',
+      import.meta.env.VITE_ALGOD_ADDRESS || 'https://testnet-api.4160.nodely.dev',
       import.meta.env.VITE_ALGOD_PORT || ''
     );
 
     this.indexerClient = new algosdk.Indexer(
       import.meta.env.VITE_INDEXER_TOKEN || '',
-      import.meta.env.VITE_INDEXER_ADDRESS || 'https://testnet-algorand.api.purestake.io/idx2',
+      import.meta.env.VITE_INDEXER_ADDRESS || 'https://testnet-idx.4160.nodely.dev',
       import.meta.env.VITE_INDEXER_PORT || ''
     );
   }
@@ -95,26 +91,14 @@ class PeraWalletService {
   // Set up event listeners
   setupEventListeners() {
     if (this.peraWallet) {
-      this.peraWallet.connector.on('connect', (error, payload) => {
-        if (error) {
-          console.error('Connection error:', error);
-          return;
+      this.peraWallet.reconnectSession().then((accounts) => {
+        if (accounts.length > 0) {
+          this.accounts = accounts;
+          this.address = accounts[0];
+          this.isConnected = true;
         }
-        
-        this.accounts = payload.params[0].accounts;
-        this.address = this.accounts[0];
-        this.isConnected = true;
-      });
-
-      this.peraWallet.connector.on('disconnect', (error, payload) => {
-        if (error) {
-          console.error('Disconnection error:', error);
-          return;
-        }
-        
-        this.accounts = [];
-        this.address = null;
-        this.isConnected = false;
+      }).catch((error) => {
+        console.error('Reconnection error:', error);
       });
     }
   }
@@ -154,10 +138,10 @@ class PeraWalletService {
         throw new Error('Wallet not connected');
       }
 
-      const signedTx = await this.peraWallet.signTransaction([transaction]);
+      const signedTxns = await this.peraWallet.signTransaction([transaction.toByte()]);
       return {
         success: true,
-        signedTransaction: signedTx[0]
+        signedTransaction: signedTxns[0]
       };
     } catch (error) {
       console.error('Transaction signing error:', error);
@@ -175,7 +159,8 @@ class PeraWalletService {
         throw new Error('Wallet not connected');
       }
 
-      const signedTxs = await this.peraWallet.signTransaction(transactions);
+      const txnBytes = transactions.map(txn => txn.toByte());
+      const signedTxs = await this.peraWallet.signTransaction(txnBytes);
       return {
         success: true,
         signedTransactions: signedTxs
@@ -285,20 +270,17 @@ class PeraWalletService {
         ownerAddress,
         suggestedParams,
         algosdk.OnComplete.NoOpOC,
-        this.getApprovalProgram(),
-        this.getClearProgram(),
-        algosdk.makeApplicationOptInTxn,
-        algosdk.makeApplicationCloseOutTxn,
-        algosdk.makeApplicationClearStateTxn,
-        algosdk.makeApplicationUpdateTxn,
-        algosdk.makeApplicationDeleteTxn,
-        new algosdk.StateSchema(10, 20), // 10 uints, 20 byte slices
-        new algosdk.StateSchema(0, 0),  // 0 uints, 0 byte slices
+        new Uint8Array(Buffer.from('approval_program_placeholder')),
+        new Uint8Array(Buffer.from('clear_program_placeholder')),
+        0, // numLocalInts
+        0, // numLocalByteSlices
+        10, // numGlobalInts
+        20, // numGlobalByteSlices
         [
-          algosdk.decodeAddress(ownerAddress),
-          algosdk.decodeAddress(contractorAddress),
-          Buffer.from(verifierPubkey, 'hex'),
-          Buffer.from(projectTitle, 'utf8')
+          new TextEncoder().encode(ownerAddress),
+          new TextEncoder().encode(contractorAddress),
+          new Uint8Array(Buffer.from(verifierPubkey, 'hex')),
+          new TextEncoder().encode(projectTitle)
         ]
       );
 
@@ -323,11 +305,11 @@ class PeraWalletService {
       const suggestedParams = await this.getTransactionParams();
       
       const appArgs = [
-        new Uint8Array(Buffer.from('add_milestone')),
+        new TextEncoder().encode('add_milestone'),
         algosdk.encodeUint64(milestoneIndex),
         algosdk.encodeUint64(amount),
         algosdk.encodeUint64(dueTimestamp),
-        new Uint8Array(Buffer.from(description, 'utf8'))
+        new TextEncoder().encode(description)
       ];
 
       const txn = await this.createAppCall(appId, sender, appArgs, suggestedParams);
@@ -352,9 +334,9 @@ class PeraWalletService {
       const suggestedParams = await this.getTransactionParams();
       
       const appArgs = [
-        new Uint8Array(Buffer.from('submit_proof')),
+        new TextEncoder().encode('submit_proof'),
         algosdk.encodeUint64(milestoneIndex),
-        new Uint8Array(Buffer.from(proofHash, 'utf8'))
+        new TextEncoder().encode(proofHash)
       ];
 
       const txn = await this.createAppCall(appId, sender, appArgs, suggestedParams);
@@ -383,7 +365,7 @@ class PeraWalletService {
       suggestedParams.flatFee = true;
       
       const appArgs = [
-        new Uint8Array(Buffer.from('verify_release')),
+        new TextEncoder().encode('verify_release'),
         algosdk.encodeUint64(milestoneIndex),
         new Uint8Array(messageBytes),
         new Uint8Array(signatureBytes)
@@ -482,32 +464,18 @@ class PeraWalletService {
     }
   }
 
-  // Get approval program (placeholder - in real implementation, this would load compiled TEAL)
-  getApprovalProgram() {
-    // This would be the compiled TEAL program
-    // For now, return a placeholder
-    return Buffer.from('placeholder_approval_program');
-  }
-
-  // Get clear program (placeholder - in real implementation, this would load compiled TEAL)
-  getClearProgram() {
-    // This would be the compiled TEAL program
-    // For now, return a placeholder
-    return Buffer.from('placeholder_clear_program');
-  }
-
   // Get connection status
   getConnectionStatus() {
     return {
       isConnected: this.isConnected,
       accounts: this.accounts,
-      address: this.connectedAccounts.length > 0 ? this.accounts[0] : null
+      address: this.accounts.length > 0 ? this.accounts[0] : null
     };
   }
 
   // Check if Pera wallet is available
   isPeraWalletAvailable() {
-    return typeof window !== 'undefined' && window.PeraWalletConnect;
+    return typeof window !== 'undefined';
   }
 
   // Get wallet info
