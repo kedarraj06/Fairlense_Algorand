@@ -197,7 +197,7 @@ export default function ContractorLogin({ isOpen, onClose, onSuccess }: Contract
                   className="pl-10"
                 />
               </div>
-              <p className="text-xs text-gray-500 mt-1">Use demo: CompanyKey</p>
+              <p className="text-xs text-gray-500 mt-1">Use demo: CompanyKey@123</p>
             </div>
 
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs">

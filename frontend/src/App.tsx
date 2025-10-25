@@ -4,7 +4,6 @@ import GovernmentDashboard from './components/GovernmentDashboard';
 import ContractorDashboard from './components/ContractorDashboard';
 import CitizenDashboard from './components/CitizenDashboard';
 import { Toaster } from './components/ui/sonner';
-import { WalletProvider } from './contexts/WalletContext';
 
 type UserRole = 'landing' | 'government' | 'contractor' | 'citizen';
 
@@ -25,9 +24,9 @@ export default function App() {
   };
 
   return (
-    <WalletProvider>
+    <>
       {renderView()}
       <Toaster />
-    </WalletProvider>
+    </>
   );
 }

@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Plus, Search, Filter, Download, Edit, Trash2, Eye, CheckCircle, Wallet, Zap } from 'lucide-react';
+import { useState } from 'react';
+import { Plus, Search, Filter, Download, Edit, Trash2, Eye, CheckCircle } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Input } from '../ui/input';
@@ -12,70 +12,59 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Progress } from '../ui/progress';
-import apiService from '../../services/api';
-import peraWalletService from '../../services/peraWallet';
 
 export default function TenderManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [formStep, setFormStep] = useState(1);
-  const [tenders, setTenders] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [walletConnected, setWalletConnected] = useState(false);
-  const [walletAddress, setWalletAddress] = useState('');
-  
-  // Form data for creating tender
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    location: '',
-    category: '',
-    budget: '',
-    deadline: '',
-    requirements: '',
-    milestones: []
-  });
 
-  // Load tenders from backend
-  useEffect(() => {
-    loadTenders();
-    checkWalletConnection();
-  }, []);
-
-  const loadTenders = async () => {
-    try {
-      setIsLoading(true);
-      const response = await apiService.getTenders();
-      setTenders(response.tenders || []);
-    } catch (error) {
-      console.error('Error loading tenders:', error);
-      toast.error('Failed to load tenders');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const checkWalletConnection = async () => {
-    const status = peraWalletService.getConnectionStatus();
-    setWalletConnected(status.isConnected);
-    setWalletAddress(status.address || '');
-  };
-
-  const connectWallet = async () => {
-    try {
-      const result = await peraWalletService.connect();
-      if (result.success) {
-        setWalletConnected(true);
-        setWalletAddress(result.address);
-        toast.success('Wallet connected successfully!');
-      } else {
-        toast.error('Failed to connect wallet: ' + result.error);
-      }
-    } catch (error) {
-      toast.error('Wallet connection failed: ' + error.message);
-    }
-  };
+  const tenders = [
+    {
+      id: 'TND-2025-001',
+      title: 'Highway Construction - NH47',
+      location: 'Mumbai-Pune',
+      budget: '₹45Cr',
+      status: 'Active',
+      bids: 12,
+      deadline: '2025-11-15',
+      category: 'Highway',
+      createdDate: '2025-10-01',
+    },
+    {
+      id: 'TND-2025-002',
+      title: 'Bridge Construction - River Ganges',
+      location: 'Varanasi',
+      budget: '₹78Cr',
+      status: 'Review',
+      bids: 8,
+      deadline: '2025-11-20',
+      category: 'Bridge',
+      createdDate: '2025-10-05',
+    },
+    {
+      id: 'TND-2025-003',
+      title: 'Metro Station Development',
+      location: 'Delhi NCR',
+      budget: '₹125Cr',
+      status: 'Active',
+      bids: 15,
+      deadline: '2025-11-25',
+      category: 'Metro',
+      createdDate: '2025-10-08',
+    },
+    {
+      id: 'TND-2025-004',
+      title: 'Water Treatment Plant',
+      location: 'Bangalore',
+      budget: '₹34Cr',
+      status: 'Completed',
+      bids: 9,
+      deadline: '2025-10-30',
+      category: 'Water',
+      createdDate: '2025-09-15',
+    },
+  ];
 
   const filteredTenders = tenders.filter(tender => {
     const matchesSearch = tender.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -84,74 +73,13 @@ export default function TenderManagement() {
     return matchesSearch && matchesFilter;
   });
 
-  const handleCreateTender = async () => {
+  const handleCreateTender = () => {
     if (formStep < 4) {
       setFormStep(formStep + 1);
     } else {
-      try {
-        // Check if wallet is connected
-        if (!walletConnected) {
-          toast.error('Please connect your Pera wallet first!');
-          return;
-        }
-
-        // Create tender in backend
-        const tenderData = {
-          title: formData.title,
-          description: formData.description,
-          budget: parseFloat(formData.budget) * 10000000, // Convert to actual amount
-          deadline: formData.deadline,
-          requirements: formData.requirements.split(',').map(req => req.trim()),
-          milestones: formData.milestones,
-          location: {
-            address: formData.location,
-            city: formData.location,
-            state: 'State',
-            country: 'India'
-          }
-        };
-
-        const tenderResponse = await apiService.createTender(tenderData);
-        
-        if (tenderResponse.tender) {
-          // Deploy smart contract
-          const contractData = {
-            tenderId: tenderResponse.tender.id,
-            contractorWallet: '', // Will be set when contractor is selected
-            verifierWallet: walletAddress // Use government wallet as verifier for now
-          };
-
-          const contractResponse = await apiService.deployContract(contractData);
-          
-          if (contractResponse.contractAddress) {
-            toast.success(`Tender created and smart contract deployed! Contract: ${contractResponse.contractAddress}`);
-            
-            // Reload tenders
-            await loadTenders();
-            
-            // Close dialog and reset form
-            setIsCreateDialogOpen(false);
-            setFormStep(1);
-            setFormData({
-              title: '',
-              description: '',
-              location: '',
-              category: '',
-              budget: '',
-              deadline: '',
-              requirements: '',
-              milestones: []
-            });
-          } else {
-            toast.error('Tender created but smart contract deployment failed');
-          }
-        } else {
-          toast.error('Failed to create tender');
-        }
-      } catch (error) {
-        console.error('Error creating tender:', error);
-        toast.error('Failed to create tender: ' + error.message);
-      }
+      toast.success('Tender created successfully and committed to blockchain!');
+      setIsCreateDialogOpen(false);
+      setFormStep(1);
     }
   };
 
@@ -175,33 +103,20 @@ export default function TenderManagement() {
           <div className="space-y-4">
             <div>
               <Label>Project Title</Label>
-              <Input 
-                placeholder="e.g., Highway Construction - NH47" 
-                value={formData.title}
-                onChange={(e) => setFormData({...formData, title: e.target.value})}
-              />
+              <Input placeholder="e.g., Highway Construction - NH47" />
             </div>
             <div>
               <Label>Project Description</Label>
-              <Textarea 
-                placeholder="Detailed description of the project..." 
-                rows={4}
-                value={formData.description}
-                onChange={(e) => setFormData({...formData, description: e.target.value})}
-              />
+              <Textarea placeholder="Detailed description of the project..." rows={4} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Location</Label>
-                <Input 
-                  placeholder="e.g., Mumbai-Pune" 
-                  value={formData.location}
-                  onChange={(e) => setFormData({...formData, location: e.target.value})}
-                />
+                <Input placeholder="e.g., Mumbai-Pune" />
               </div>
               <div>
                 <Label>Category</Label>
-                <Select value={formData.category} onValueChange={(value) => setFormData({...formData, category: value})}>
+                <Select>
                   <SelectTrigger>
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
@@ -245,12 +160,7 @@ export default function TenderManagement() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Estimated Budget (₹ Crores)</Label>
-                <Input 
-                  type="number" 
-                  placeholder="e.g., 45" 
-                  value={formData.budget}
-                  onChange={(e) => setFormData({...formData, budget: e.target.value})}
-                />
+                <Input type="number" placeholder="e.g., 45" />
                 <p className="text-sm text-green-600 mt-1">✓ AI suggests: ₹42-48Cr based on similar projects</p>
               </div>
               <div>
@@ -261,11 +171,7 @@ export default function TenderManagement() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Bid Submission Deadline</Label>
-                <Input 
-                  type="date" 
-                  value={formData.deadline}
-                  onChange={(e) => setFormData({...formData, deadline: e.target.value})}
-                />
+                <Input type="date" />
               </div>
               <div>
                 <Label>Project Start Date</Label>
@@ -296,17 +202,14 @@ export default function TenderManagement() {
             </div>
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <div className="flex items-start">
-                <Zap className="h-5 w-5 text-blue-600 mt-0.5 mr-2" />
+                <CheckCircle className="h-5 w-5 text-blue-600 mt-0.5 mr-2" />
                 <div>
                   <p className="text-sm">
-                    <strong>Smart Contract Deployment:</strong> This tender will be deployed as a smart contract 
-                    on Algorand blockchain for transparent and automated milestone payments.
+                    <strong>Blockchain Commitment:</strong> This tender will be recorded on the blockchain 
+                    for immutable transparency and verification.
                   </p>
                   <p className="text-xs text-gray-600 mt-1">
-                    Contract Address: Will be generated after deployment
-                  </p>
-                  <p className="text-xs text-gray-600 mt-1">
-                    Wallet: {walletConnected ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : 'Not connected'}
+                    Hash: 0x7f9fade1c0d57a7af66ab4ead79fade1c0d57a7af66ab4ead7c2c2eb7b11a91385
                   </p>
                 </div>
               </div>
@@ -332,19 +235,6 @@ export default function TenderManagement() {
           </div>
         </div>
         <div className="flex space-x-3">
-          {/* Wallet Connection Status */}
-          {walletConnected ? (
-            <div className="flex items-center space-x-2 bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
-              <Wallet className="h-4 w-4" />
-              <span>Connected: {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}</span>
-            </div>
-          ) : (
-            <Button variant="outline" onClick={connectWallet} className="text-blue-600">
-              <Wallet className="h-4 w-4 mr-2" />
-              Connect Wallet
-            </Button>
-          )}
-          
           <Select value={filterStatus} onValueChange={setFilterStatus}>
             <SelectTrigger className="w-40">
               <Filter className="h-4 w-4 mr-2" />
@@ -363,10 +253,9 @@ export default function TenderManagement() {
           </Button>
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-blue-600 hover:bg-blue-700" disabled={!walletConnected}>
+              <Button className="bg-blue-600 hover:bg-blue-700">
                 <Plus className="h-4 w-4 mr-2" />
                 Create New Tender
-                {!walletConnected && <span className="ml-2 text-xs">(Connect Wallet)</span>}
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -461,52 +350,33 @@ export default function TenderManagement() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={9} className="text-center py-8">
-                    Loading tenders...
+              {filteredTenders.map((tender) => (
+                <TableRow key={tender.id}>
+                  <TableCell className="font-mono text-sm">{tender.id}</TableCell>
+                  <TableCell>{tender.title}</TableCell>
+                  <TableCell>{tender.location}</TableCell>
+                  <TableCell>{tender.budget}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{tender.category}</Badge>
+                  </TableCell>
+                  <TableCell>{getStatusBadge(tender.status)}</TableCell>
+                  <TableCell>{tender.bids} bids</TableCell>
+                  <TableCell className="text-sm">{tender.deadline}</TableCell>
+                  <TableCell>
+                    <div className="flex space-x-1">
+                      <Button size="sm" variant="ghost" onClick={() => toast.info(`Viewing ${tender.id}`)}>
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => toast.info(`Editing ${tender.id}`)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" variant="ghost" className="text-red-600" onClick={() => toast.error('Tender archived')}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
-              ) : filteredTenders.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={9} className="text-center py-8">
-                    No tenders found
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredTenders.map((tender) => (
-                  <TableRow key={tender.id || tender._id}>
-                    <TableCell className="font-mono text-sm">{tender.id || tender._id}</TableCell>
-                    <TableCell>{tender.title}</TableCell>
-                    <TableCell>{tender.location?.address || tender.location || 'N/A'}</TableCell>
-                    <TableCell>₹{(tender.budget / 10000000).toFixed(1)}Cr</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{tender.category || 'General'}</Badge>
-                    </TableCell>
-                    <TableCell>{getStatusBadge(tender.status)}</TableCell>
-                    <TableCell>{tender.bids || 0} bids</TableCell>
-                    <TableCell className="text-sm">{new Date(tender.deadline).toLocaleDateString()}</TableCell>
-                    <TableCell>
-                      <div className="flex space-x-1">
-                        <Button size="sm" variant="ghost" onClick={() => toast.info(`Viewing ${tender.id || tender._id}`)}>
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => toast.info(`Editing ${tender.id || tender._id}`)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        {tender.contractAddress && (
-                          <Button size="sm" variant="ghost" className="text-blue-600" onClick={() => toast.info(`Contract: ${tender.contractAddress}`)}>
-                            <Zap className="h-4 w-4" />
-                          </Button>
-                        )}
-                        <Button size="sm" variant="ghost" className="text-red-600" onClick={() => toast.error('Tender archived')}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
+              ))}
             </TableBody>
           </Table>
         </CardContent>

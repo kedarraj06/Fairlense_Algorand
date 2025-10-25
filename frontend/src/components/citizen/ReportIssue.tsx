@@ -26,7 +26,7 @@ import {
   MapPin,
 } from "lucide-react";
 import { Switch } from "../ui/switch";
-import { toast } from "sonner";
+import { toast } from "sonner@2.0.3";
 import {
   Tabs,
   TabsContent,

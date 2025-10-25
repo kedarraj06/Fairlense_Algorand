@@ -97,7 +97,7 @@ node server.js
 #### Start Frontend (in new terminal)
 ```bash
 cd frontend
-npm start
+npm run dev 
 ```
 *Frontend runs on http://localhost:3000*
 

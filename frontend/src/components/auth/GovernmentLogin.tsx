@@ -186,7 +186,7 @@ export default function GovernmentLogin({ isOpen, onClose, onSuccess }: Governme
                   className="pl-10"
                 />
               </div>
-              <p className="text-xs text-gray-500 mt-1">Use demo: SecureKey</p>
+              <p className="text-xs text-gray-500 mt-1">Use demo: SecureKey@2025</p>
             </div>
 
             {/* Passkey Strength Indicator */}
