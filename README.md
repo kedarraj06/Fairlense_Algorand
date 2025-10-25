@@ -423,4 +423,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Built with ❤️ for transparent government contracting**
 
+<<<<<<< HEAD
 *Last updated: October 2025*
+=======
+*Last updated: October 2025*
+>>>>>>> de4473764439727da2697b61e92aa6e699d22206
